@@ -1,0 +1,10 @@
+{
+  "source": {
+    "url": "https://nsxmgr.example.domain.com",
+    "password": "YourSuperSpecialPassword",
+    "verify_ssl": false
+  },
+  "version": {
+    "version": "2.2.0.0.0.8680778"
+  }
+}

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -eux
+
+# copy STDIN to a file; we might need to read it twice
+STDIN=/tmp/nsx-t-version.in
+cat > $STDIN
+# read JSON from STDIN, convert important fields to shell variables of the same name
+# jq -r '{
+eval $( jq -r '{
+  "url": .source.url,
+  "password": .source.password,
+  "user": ( .source.user // "admin" ),
+  "cert": ( if .source.cert == null then
+      ""
+    else
+      "present"
+    end ),
+  "verify_ssl": ( if .source.verify_ssl == null then
+      true
+    else
+      .source.verify_ssl
+    end )
+  } | to_entries[] | .key + "=" + @sh "\(.value)"
+' < $STDIN )
+url=${url%%/}
+
+printf "url=$url\nuser=$user\nverify_ssl=$verify_ssl\ncert=$cert\n" >&2
+
+curl_arg=""
+if [ "$cert" == present ]; then
+  cert_path=/tmp/nsx-t-version.pem
+  jq -r .source.cert < $STDIN > $cert_path
+  curl_arg="$curl_arg --cacert $cert_path"
+fi
+
+# Get the version number by hitting the undocumented endpoint
+endpoint="${url}/api/v1/node/version"
+if [ "$verify_ssl" == false ] && [ "$cert" != present ] ; then
+  curl_arg="-k"
+fi
+
+# NSX-T 2.2 uses .node_version, but 2.3 uses .product_version
+printf "curl --silent --user \"$user:REDACTED\" $curl_arg $endpoint | jq -r '(.product_version // .node_version)'\n" >&2
+VERSION=$(curl --user "$user:$password" $curl_arg $endpoint | jq -r '(.product_version // .node_version)')
+printf "[{\"version\":\"$VERSION\"}]\n" >&2
+printf "[{\"version\":\"$VERSION\"}]\n"

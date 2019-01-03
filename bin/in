@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eux
+mkdir -p ${1:-/}
+
+STDIN=/tmp/nsx-t-version.$$
+cat > $STDIN
+
+jq '{ "version": { "version": .version.version }, "metadata": [] }' < $STDIN
+jq '{ "version": { "version": .version.version }, "metadata": [] }' < $STDIN >&2
